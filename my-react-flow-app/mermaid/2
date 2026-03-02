@@ -1,0 +1,18 @@
+
+graph LR;
+    A["What is __init__?"] --> B["The Constructor Method in Python"];
+    B --> C["Called when an object is created"];
+    C --> D["Initializes the object's attributes"];
+    D --> E["Example Code 1"];
+    E --> F["class Person:"];
+    E --> G["def __init__(self, name, age):"];
+    E --> H["self.name = name"];
+    E --> I["self.age = age"];
+    E --> J["p = Person('Alice', 30)"];
+    J --> K["print(p.name, p.age)"];
+    D --> L["Example Code 2"];
+    L --> M["class Animal:"];
+    L --> N["def __init__(self, species):"];
+    L --> O["self.species = species"];
+    L --> P["a = Animal('Dog')"];
+    P --> Q["print(a.species)"];

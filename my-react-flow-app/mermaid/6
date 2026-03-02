@@ -1,0 +1,21 @@
+
+graph LR;
+    A["What is docstring in Python?"] --> B["A string literal used to document functions, classes, or modules"];
+    A --> C["Placed inside triple quotes (''' or \")"];
+    B --> D["Describes the purpose, parameters, and return value"];
+    D --> E["Example Code 1"];
+    E --> F["def greet(name):"];
+    E --> G["\"\"\"This function greets the person passed in as parameter.\"\"\""];
+    E --> H["print(f'Hello, {name}!')"];
+    E --> I["greet('Alice')"];
+    E --> J["Output: Hello, Alice!"];
+    B --> K["Example Code 2"];
+    K --> L["class Person:"];
+    K --> M["\"\"\"This class represents a person.\"\"\""];
+    K --> N["def __init__(self, name):"];
+    K --> O["self.name = name"];
+    K --> P["p = Person('Bob')"];
+    P --> Q["print(p.name)"];
+    B --> R["Accessing docstring"];
+    R --> S["print(greet.__doc__)"];
+    S --> T["Output: This function greets the person passed in as parameter."];

@@ -1,0 +1,22 @@
+
+graph LR;
+    A["What is slicing in Python?"] --> B["Extracting parts of a sequence"];
+    A --> C["Works with lists, tuples, strings"];
+    B --> D["Syntax: sequence[start:stop:step]"];
+    D --> E["start = start index"];
+    D --> F["stop = end index (exclusive)"];
+    D --> G["step = step size (optional)"];
+    B --> H["Example Code 1"];
+    H --> I["my_list = [0, 1, 2, 3, 4, 5, 6]"];
+    H --> J["sliced = my_list[2:5]"];
+    H --> K["print(sliced)"];
+    K --> L["Output: [2, 3, 4]"];
+    B --> M["Example Code 2"];
+    M --> N["my_string = 'Python'"];
+    M --> O["sliced_string = my_string[1:4]"];
+    M --> P["print(sliced_string)"];
+    P --> Q["Output: 'yth'"];
+    B --> R["Example Code 3"];
+    R --> S["sliced_with_step = my_list[::2]"];
+    R --> T["print(sliced_with_step)"];
+    T --> U["Output: [0, 2, 4, 6]"];

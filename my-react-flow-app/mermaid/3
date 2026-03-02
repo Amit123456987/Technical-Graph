@@ -1,0 +1,17 @@
+
+graph LR;
+    A["What is the difference between Python Arrays and Lists?"] --> B["Python Lists"];
+    A --> C["Python Arrays"];
+    B --> D["Flexible, can store elements of different data types"];
+    B --> E["Example Code 1"];
+    E --> F["my_list = [1, 'apple', 3.14]"];
+    E --> G["print(my_list)"];
+    C --> H["Fixed type, all elements must be of the same type"];
+    C --> I["Example Code 2"];
+    I --> J["import array"];
+    I --> K["my_array = array.array('i', [1, 2, 3])"];
+    I --> L["print(my_array)"];
+    B --> M["More built-in methods"];
+    C --> N["More memory efficient"];
+    M --> O["append(), extend(), pop()"];
+    N --> P["Uses less memory for large data sets"];

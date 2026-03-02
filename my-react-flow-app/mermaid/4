@@ -1,0 +1,14 @@
+
+graph LR;
+    A["How to make a Python script executable on Unix?"] --> B["Add Shebang line"];
+    A --> C["Make the script executable"];
+    B --> D["# Add shebang at the top of the file"];
+    D --> E["#!/usr/bin/env python3"];
+    C --> F["Run chmod command"];
+    F --> G["chmod +x script.py"];
+    F --> H["Example Code 1"];
+    H --> I["script.py"];
+    H --> J["python3 script.py"];
+    C --> K["Run the script directly"];
+    K --> L["./script.py"];
+    L --> M["Output: Hello World!"];

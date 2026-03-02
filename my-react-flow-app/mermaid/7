@@ -1,0 +1,24 @@
+
+graph LR;
+    A["What are unit tests in Python?"] --> B["Unit tests check individual components (functions, methods)"];
+    A --> C["Used to verify that each part of the code works as expected"];
+    B --> D["Unit testing framework in Python: unittest"];
+    D --> E["import unittest"];
+    B --> F["Example Code 1"];
+    F --> G["def add(a, b):"];
+    F --> H["return a + b"];
+    F --> I["class TestAddition(unittest.TestCase):"];
+    F --> J["def test_add(self):"];
+    F --> K["self.assertEqual(add(2, 3), 5)"];
+    F --> L["if __name__ == '__main__':"];
+    F --> M["unittest.main()"];
+    F --> N["Run the test"];
+    N --> O["Output: OK"];
+    B --> P["Example Code 2"];
+    P --> Q["def subtract(a, b):"];
+    P --> R["return a - b"];
+    P --> S["class TestSubtraction(unittest.TestCase):"];
+    P --> T["def test_subtract(self):"];
+    P --> U["self.assertEqual(subtract(5, 3), 2)"];
+    P --> V["if __name__ == '__main__':"];
+    P --> W["unittest.main()"];

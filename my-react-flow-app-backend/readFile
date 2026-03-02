@@ -1,0 +1,24 @@
+graph TD
+    A[useState Hook] --> B[Purpose]
+    A --> C[Syntax]
+    A --> D[Examples]
+    
+    B --> B1["Manages local state in functional components"]
+    B --> B2["Triggers re-render when state updates"]
+    
+    C --> C1["const [state, setState] = useState(initialValue)"]
+    C --> C2["state: Current state value"]
+    C --> C3["setState: Function to update state"]
+    
+    D --> D1["Counter Example"]
+    D1 --> D1a["function Counter() {\n  const [count, setCount] = useState(0);\n  return (\n    <button onClick={() => setCount(c => c + 1)}>\n      Clicked {count} times\n    </button>\n  );\n}"]
+    
+    D --> D2["Form Input Example"]
+    D2 --> D2a["function Form() {\n  const [name, setName] = useState('');\n  return (\n    <input \n      value={name} \n      onChange={(e) => setName(e.target.value)}\n    />\n  );\n}"]
+    
+    D --> D3["Toggle Example"]
+    D3 --> D3a["function Toggle() {\n  const [isOn, setIsOn] = useState(false);\n  return (\n    <button onClick={() => setIsOn(!isOn)}>\n      {isOn ? 'ON' : 'OFF'}\n    </button>\n  );\n}"]
+    
+    D --> D4["Object State Example"]
+    D4 --> D4a["function User() {\n  const [user, setUser] = useState({ \n    name: 'John', \n    age: 30 \n  });\n  \n  const updateName = () => {\n    setUser({...user, name: 'Jane'});\n  };\n}]
+
