@@ -38,8 +38,8 @@ const useLayoutedElements = () => {
   const { getNodes, setNodes, getEdges, fitView } = useReactFlow();
   const defaultOptions = {
     // 'elk.algorithm': 'layered',
-    'elk.layered.spacing.nodeNodeBetweenLayers': 100,
-    'elk.spacing.nodeNode': 80,
+    'elk.spacing.nodeNode': 120,// horizontal space between nodes — increase for more gap
+    'elk.layered.spacing.nodeNodeBetweenLayers': 200,// vertical space between layers — increase for more gap
   };
 
   const getLayoutedElements = useCallback((options) => {
@@ -94,6 +94,7 @@ const Flow = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showNodes, setShowNodes] = useState(true); // ON = nodes visible, OFF = nodes hidden
   const [name, setName] = useState('');
+  const [deleteConfirmName, setDeleteConfirmName] = useState(null); // graph name when delete confirmation is open
   const { getLayoutedElements } = useLayoutedElements();
   const [config, setConfig] = useState({});
 
@@ -192,13 +193,9 @@ const Flow = () => {
         console.log("Fetched nodes:", data);
 
         if (data && data.nodes && data.edges) {
-          // const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-          //   data.nodes,
-          //   data.edges
-          // );
-
           setNodes(data.nodes);
           setEdges(data.edges);
+          setName(savedName);
         }
       } catch (error) {
         console.error('Error fetching nodes:', error);
@@ -315,10 +312,8 @@ const Flow = () => {
     setNodes((nds) => [...nds, newNode]);
   }, [nodes.length, setNodes]);
 
-  const handleDelete = useCallback(async (name) => {
-
-    // Fetch the map data using POST request
-    const response = await fetch(`http://localhost:3000/map/delete/${encodeURIComponent(name)}`, {
+  const performDelete = useCallback(async (nameToDelete) => {
+    const response = await fetch(`http://localhost:3000/map/delete/${encodeURIComponent(nameToDelete)}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -326,8 +321,12 @@ const Flow = () => {
     });
     setSelectedNodes([]);
     setSelectedEdges([]);
+    setDeleteConfirmName(null);
+    window.location.reload();
+  }, []);
 
-    console.log(" Selected nodes : Deleted !!! " + response);
+  const handleDeleteRequest = useCallback((nameToDelete) => {
+    setDeleteConfirmName(nameToDelete);
   }, []);
 
   const handleItemClick = useCallback(async (item) => {
@@ -351,12 +350,8 @@ const Flow = () => {
       const data = await response.json();
 
       if (data && data.nodes && data.edges) {
-        // const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-        //   data.nodes,
-        //   data.edges
-        // );
-
         setName(item);
+        window.location.reload();
       }
     } catch (error) {
       console.error('Error fetching map data:', error);
@@ -485,8 +480,64 @@ const Flow = () => {
 
   return (
     <>
+      {deleteConfirmName !== null && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setDeleteConfirmName(null)}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '24px',
+              borderRadius: '8px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              minWidth: '320px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ margin: '0 0 20px', fontSize: '16px' }}>
+              Do you want to delete this Graph?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDeleteConfirmName(null)}
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  background: 'white',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => performDelete(deleteConfirmName)}
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  background: '#c00',
+                  color: 'white',
+                  cursor: 'pointer',
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", height: "100vh" }}>
-        <SideBar onItemClick={handleItemClick} handleDelete={handleDelete} />
+        <SideBar onItemClick={handleItemClick} handleDelete={handleDeleteRequest} />
         <ReactFlow
           nodes={nodes}
           edges={edges}
