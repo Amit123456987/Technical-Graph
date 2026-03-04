@@ -21,58 +21,109 @@ function listFilesInFolder(folder) {
   }
 }
 
-// Convert Mermaid line to nodes and edge
-function processLine(line, fileName = "") {
-  const nodes = line.split('-->');
-  if (nodes.length !== 2) return;
-  let edgeLabel = "";
+// Parse a single Mermaid node expression like:
+// A, A[text], A("text"), A{text}, A((text))
+function parseNode(raw) {
+  let text = raw.trim();
 
-  const createNode = (raw, filePrefix) => {
-    edgeLabel = raw.match(/\|(.*)\|/) ? raw.match(/\|(.*)\|/)[1] : "";
-    raw = raw.replace(/\|(.*)\|/, '').trim();
-    const labelMatch = raw.match(/\[(.*)\]|\{(.*)\}|\((.*)\)/);
-    raw = raw.replace(/\[(.*)\]|\{(.*)\}|\((.*)\)/, '').trim();
-    const id = raw;
-    const label = labelMatch ? labelMatch[1] : id;
+  // Strip trailing semicolon if present
+  if (text.endsWith(';')) {
+    text = text.slice(0, -1).trim();
+  }
 
-    if (!uniqueNodeIds.has(id)) {
-      uniqueNodeIds.add(id);
-      nodeList.push({
-        id,
-        data: { label },
-        position,
-        sourcePosition: 'right',
-        targetPosition: 'left'
-      });
+  // Node id = first token before bracket/brace/paren/space
+  const idMatch = text.match(/^([A-Za-z0-9_\-:.]+)/);
+  const id = idMatch ? idMatch[1] : text;
+
+  // Try to extract a human label from brackets/braces/parens or quotes
+  const labelMatch = text.match(/\[(.*)\]|\{(.*)\}|\((.*)\)|\"(.*)\"|'(.*)'/);
+  let label = id;
+  if (labelMatch) {
+    for (let i = 1; i < labelMatch.length; i += 1) {
+      if (labelMatch[i]) {
+        label = labelMatch[i].trim();
+        break;
+      }
     }
+  }
 
-    return id;
-  };
+  if (!uniqueNodeIds.has(id)) {
+    uniqueNodeIds.add(id);
+    nodeList.push({
+      id,
+      data: { label },
+      position,
+      sourcePosition: 'right',
+      targetPosition: 'left',
+    });
+  }
 
-  const source = createNode(nodes[0], fileName);
-  const target = createNode(nodes[1], fileName);
+  return id;
+}
+
+// Convert a Mermaid edge line to nodes and edge
+function processLine(line) {
+  let text = line.trim();
+  if (!text) return;
+
+  // Strip Mermaid comments
+  const commentIndex = text.indexOf('%%');
+  if (commentIndex !== -1) {
+    text = text.slice(0, commentIndex).trim();
+  }
+  if (!text) return;
+
+  // Skip non-edge / directive lines
+  if (
+    text.startsWith('graph ') ||
+    text.startsWith('flowchart ') ||
+    text.startsWith('subgraph ') ||
+    text === 'end' ||
+    text.startsWith('classDef ') ||
+    text.startsWith('linkStyle ') ||
+    text.startsWith('style ')
+  ) {
+    return;
+  }
+
+  // Extract edge label of the form |label|
+  let edgeLabel = '';
+  const labelMatch = text.match(/\|([^|]+)\|/);
+  if (labelMatch) {
+    edgeLabel = labelMatch[1].trim();
+    text = text.replace(/\|[^|]+\|/, '');
+  }
+
+  // Split on main Mermaid edge operators
+  const parts = text.split(/-->|---/);
+  if (parts.length !== 2) {
+    return;
+  }
+
+  const sourceId = parseNode(parts[0]);
+  const targetId = parseNode(parts[1]);
+  if (!sourceId || !targetId) return;
 
   edgeList.push({
-    id: `${source}-${target}`,
-    source,
-    target,
-    type: "custom",
-    label: edgeLabel
+    id: `${sourceId}-${targetId}`,
+    source: sourceId,
+    target: targetId,
+    type: 'custom',
+    label: edgeLabel,
   });
 }
 
-
 function processFile(content) {
-  const lines = content.toString().split("\n");
+  const lines = content.toString().split('\n');
   nodeList = [];
   edgeList = [];
   uniqueNodeIds.clear();
 
-  lines.forEach(line => {
+  for (const line of lines) {
     if (line.trim()) {
-      processLine(line.trim(), "");
+      processLine(line);
     }
-  });
+  }
 
   return { nodes: nodeList, edges: edgeList };
 }

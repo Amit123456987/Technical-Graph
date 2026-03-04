@@ -38,7 +38,7 @@ const useLayoutedElements = () => {
   const { getNodes, setNodes, getEdges, fitView } = useReactFlow();
   const defaultOptions = {
     // 'elk.algorithm': 'layered',
-    'elk.spacing.nodeNode': 120,// horizontal space between nodes — increase for more gap
+    // 'elk.spacing.nodeNode': 120,// horizontal space between nodes — increase for more gap
     'elk.layered.spacing.nodeNodeBetweenLayers': 200,// vertical space between layers — increase for more gap
   };
 
