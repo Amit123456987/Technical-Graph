@@ -124,6 +124,8 @@ const Flow = () => {
       // let { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(result.data.nodes, result.data.edges);
       getLayoutedElements(config);
       setName(result.data.name);
+      window.location.reload();
+      
       // setNodes(layoutedNodes);
       // setEdges(layoutedEdges);
     } catch (error) {

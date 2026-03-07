@@ -96,21 +96,27 @@ function processLine(line) {
 
   // Split on main Mermaid edge operators
   const parts = text.split(/-->|---/);
-  if (parts.length !== 2) {
+
+
+  if (parts.length == 1) {
+    const sourceId = parseNode(parts[0]);
     return;
   }
 
-  const sourceId = parseNode(parts[0]);
-  const targetId = parseNode(parts[1]);
-  if (!sourceId || !targetId) return;
+  else if (parts.length == 2) {
+    const sourceId = parseNode(parts[0]);
+    const targetId = parseNode(parts[1]);
+      if (!sourceId || !targetId) return;
 
-  edgeList.push({
-    id: `${sourceId}-${targetId}`,
-    source: sourceId,
-    target: targetId,
-    type: 'custom',
-    label: edgeLabel,
-  });
+      edgeList.push({
+        id: `${sourceId}-${targetId}`,
+        source: sourceId,
+        target: targetId,
+        type: 'custom',
+        label: edgeLabel,
+      });
+    }
+    return;
 }
 
 function processFile(content) {
