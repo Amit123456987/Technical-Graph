@@ -1,28 +1,24 @@
 import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import {
-  ReactFlow,
   addEdge,
   useNodesState,
   useEdgesState,
   ConnectionLineType,
-  MiniMap,
-  Background,
-  Controls,
-  Panel,
-  Position,
   useReactFlow,
-  ReactFlowProvider
+  ReactFlowProvider,
+  reconnectEdge,
 } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import '@xyflow/react/dist/style.css';
 import { initialNodes, initialEdges } from './initialElements';
 import TextUpdaterNode from '../textUpdater';
 import SideBar from './SideBar';
-import FileUploadModal from './FileUploadModal';
 import "./App.css";
-import AlgoButton from './components/Button';
 import CustomEdge from './components/CustomEdge';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
+import DeleteSelectionModal from './components/DeleteSelectionModal';
+import FlowCanvas from './components/FlowCanvas';
 import { Graph } from './graph';
 
 const elk = new ELK();
@@ -37,32 +33,85 @@ const nodeTypes = {
 const useLayoutedElements = () => {
   const { getNodes, setNodes, getEdges, fitView } = useReactFlow();
   const defaultOptions = {
-    // 'elk.algorithm': 'layered',
-    'elk.spacing.nodeNode': 120,// horizontal space between nodes — increase for more gap
-    'elk.layered.spacing.nodeNodeBetweenLayers': 200,// vertical space between layers — increase for more gap
+    'elk.algorithm': 'layered',
+    'elk.spacing.nodeNode': 120,
+    'elk.layered.spacing.nodeNodeBetweenLayers': 200,
+    // Prefer balanced branch spacing (symmetric look) over minimal height / straight-edge bias
+    'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+    'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+    'elk.layered.nodePlacement.favorStraightEdges': false,
   };
 
   const getLayoutedElements = useCallback((options) => {
     const layoutOptions = { ...defaultOptions, ...options };
+    const allNodes = getNodes();
+    const allEdges = getEdges();
+    const visibleNodes = allNodes.filter((node) => !node.hidden);
+    const visibleIds = new Set(visibleNodes.map((n) => n.id));
+    const visibleEdges = allEdges.filter(
+      (edge) =>
+        !edge.hidden &&
+        visibleIds.has(edge.source) &&
+        visibleIds.has(edge.target),
+    );
+
     const graph = {
       id: 'root',
       layoutOptions: layoutOptions,
-      children: getNodes().map((node) => ({
+      children: visibleNodes.map((node) => ({
         ...node,
         width: node.measured.width,
         height: node.measured.height,
       })),
-      edges: getEdges(),
+      edges: visibleEdges,
     };
 
     elk.layout(graph).then(({ children }) => {
-      // By mutating the children in-place we saves ourselves from creating a
-      // needless copy of the nodes array.
-      children.forEach((node) => {
-        node.position = { x: node.x, y: node.y };
-      });
+      const sizeById = new Map(
+        visibleNodes.map((n) => [
+          n.id,
+          {
+            w: n.measured?.width ?? n.width ?? 160,
+            h: n.measured?.height ?? n.height ?? 48,
+          },
+        ]),
+      );
 
-      setNodes(children);
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const node of children) {
+        const { w, h } = sizeById.get(node.id) ?? { w: 160, h: 48 };
+        minX = Math.min(minX, node.x);
+        minY = Math.min(minY, node.y);
+        maxX = Math.max(maxX, node.x + w);
+        maxY = Math.max(maxY, node.y + h);
+      }
+
+      const dx =
+        children.length > 0 && Number.isFinite(minX) && Number.isFinite(maxX)
+          ? -(minX + maxX) / 2
+          : 0;
+      const dy =
+        children.length > 0 && Number.isFinite(minY) && Number.isFinite(maxY)
+          ? -(minY + maxY) / 2
+          : 0;
+
+      const layoutPositions = new Map(
+        children.map((node) => [
+          node.id,
+          { x: node.x + dx, y: node.y + dy },
+        ]),
+      );
+
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.hidden) return node;
+          const nextPos = layoutPositions.get(node.id);
+          return nextPos ? { ...node, position: nextPos } : node;
+        }),
+      );
       fitView();
     });
   }, []);
@@ -95,6 +144,7 @@ const Flow = () => {
   const [showNodes, setShowNodes] = useState(true); // ON = nodes visible, OFF = nodes hidden
   const [name, setName] = useState('');
   const [deleteConfirmName, setDeleteConfirmName] = useState(null); // graph name when delete confirmation is open
+  const [showDeleteSelectionConfirm, setShowDeleteSelectionConfirm] = useState(false);
   const { getLayoutedElements } = useLayoutedElements();
   const [config, setConfig] = useState({});
 
@@ -301,6 +351,16 @@ const Flow = () => {
     setSelectedEdges([]);
   }, [selectedNodes, selectedEdges, setNodes, setEdges]);
 
+  const requestDeleteSelection = useCallback(() => {
+    if (selectedNodes.length === 0 && selectedEdges.length === 0) return;
+    setShowDeleteSelectionConfirm(true);
+  }, [selectedNodes.length, selectedEdges.length]);
+
+  const confirmDeleteSelection = useCallback(() => {
+    deleteSelected();
+    setShowDeleteSelectionConfirm(false);
+  }, [deleteSelected]);
+
   const addNewNode = useCallback(() => {
     const id = `node-${Date.now()}`;
     const newNode = {
@@ -480,66 +540,23 @@ const Flow = () => {
 
   return (
     <>
-      {deleteConfirmName !== null && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setDeleteConfirmName(null)}
-        >
-          <div
-            style={{
-              background: 'white',
-              padding: '24px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-              minWidth: '320px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p style={{ margin: '0 0 20px', fontSize: '16px' }}>
-              Do you want to delete this Graph?
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setDeleteConfirmName(null)}
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  background: 'white',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => performDelete(deleteConfirmName)}
-                style={{
-                  padding: '8px 16px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  background: '#c00',
-                  color: 'white',
-                  cursor: 'pointer',
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmModal
+        isOpen={deleteConfirmName !== null}
+        onClose={() => setDeleteConfirmName(null)}
+        onConfirm={() => performDelete(deleteConfirmName)}
+      />
+      <DeleteSelectionModal
+        isOpen={showDeleteSelectionConfirm}
+        selectedNodesCount={selectedNodes.length}
+        selectedEdgesCount={selectedEdges.length}
+        onClose={() => setShowDeleteSelectionConfirm(false)}
+        onConfirm={confirmDeleteSelection}
+      />
       <div style={{ display: "flex", height: "100vh" }}>
         <SideBar onItemClick={handleItemClick} handleDelete={handleDeleteRequest} />
-        <ReactFlow
+        <FlowCanvas
           nodes={nodes}
+          setNodes={setNodes}
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -550,124 +567,28 @@ const Flow = () => {
           onReconnect={onReconnect}
           onReconnectStart={onReconnectStart}
           onReconnectEnd={onReconnectEnd}
-          connectionLineType={ConnectionLineType.SmoothStep}
           onSelectionChange={onSelectionChange}
           onMouseMove={handleMouseMove}
           onNodeDragStop={onNodeDragStop}
           onNodeClick={onNodeClick}
-          onNodeDoubleClick={(event, node) => {
-            console.log('Node double-clicked:', node);
-            // Add your double-click logic here
-          }}
-          fitView
-          style={{ backgroundColor: "black" }}
-          selectionKeyCode="Shift"
-          selectionOnDrag
-          multiSelectionKeyCode="Control"
-          deleteKeyCode="Backspace"
-        >
-          <Panel position="top-left"
-            style={{
-              gap: '8px',
-              padding: '10px',
-              background: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 2px 10px rgba(11, 10, 10, 0.17)',
-              zIndex: 5
-            }}>
-            {/* <AlgoButton onClick={directionChange} algorithm='AUTOMATIC' buttonStyle={buttonStyle}>AUTOMATIC</AlgoButton>  */}
-            <AlgoButton onClick={directionChange} algorithm='TOP' buttonStyle={buttonStyle}>TOP</AlgoButton>
-            <AlgoButton onClick={directionChange} algorithm='RIGHT' buttonStyle={buttonStyle}>RIGHT</AlgoButton>
-            <AlgoButton onClick={directionChange} algorithm='DOWN' buttonStyle={buttonStyle}>DOWN</AlgoButton>
-            <AlgoButton onClick={directionChange} algorithm='LEFT' buttonStyle={buttonStyle}>LEFT</AlgoButton>
-            <AlgoButton onClick={directionChange} algorithm='CENTER' buttonStyle={buttonStyle}>CENTER</AlgoButton>
-            {/* <AlgoButton onClick={()=> deleteProperty('elk.direction')} algorithm='CENTER' buttonStyle={buttonStyle}>NO DIRECTION</AlgoButton> */}
-            <button onClick={() => saveNodes(nodes, edges)} style={buttonStyle}>Save Positions</button>
-            <button
-              onClick={deleteSelected}
-              disabled={selectedNodes.length === 0 && selectedEdges.length === 0}
-              style={{
-                ...buttonStyle,
-                opacity: selectedNodes.length === 0 && selectedEdges.length === 0 ? 0.5 : 1,
-                cursor: selectedNodes.length === 0 && selectedEdges.length === 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Delete selected ({selectedNodes.length + selectedEdges.length})
-            </button>
-            <button onClick={addNewNode} style={buttonStyle}>Add node</button>
-            <button onClick={() => setIsAddModalOpen(!isAddModalOpen)} style={buttonStyle}>Add New Nodes</button>
-            <button
-              onClick={() => setShowNodes((on) => !on)}
-              style={{
-                ...buttonStyle,
-                backgroundColor: showNodes ? '#000000' : '#666',
-                opacity: showNodes ? 1 : 0.8,
-              }}
-            >
-              Graph {showNodes ? 'ON' : 'OFF'}
-            </button>
-            <button onClick={() => setIsModalOpen(!isModalOpen)} style={buttonStyle}>Add New Graph</button>
-            <FileUploadModal
-              isOpen={isAddModalOpen}
-              onClose={() => setIsAddModalOpen(false)}
-              onSubmit={handleAddSubmit}
-            />
-            <FileUploadModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onSubmit={handleSubmit}
-            />
-            {saveStatus && ( 
-              <div style={{
-                position: 'absolute',
-                top: '50px',
-                right: '10px',
-                backgroundColor: saveStatus.includes('Error') ? '#f44336' : '#4CAF50',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}>
-                {saveStatus}
-              </div>
-            )}
-          </Panel>
-          <Panel position="top-right"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              padding: '10px',
-              background: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-              zIndex: 5
-            }}>
-            {/* <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.box' buttonStyle={buttonStyle} >ELK Box</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.disco' buttonStyle={buttonStyle} >ELK Disco</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.fixed' buttonStyle={buttonStyle} > ELK Fixed</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.force' buttonStyle={buttonStyle} > ELK Force</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.layered' buttonStyle={buttonStyle} >ELK Layered</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.mrtree' buttonStyle={buttonStyle} >ELK Mr. Tree</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.radial' buttonStyle={buttonStyle} >ELK Radial</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.random' buttonStyle={buttonStyle} > ELK Randomizer</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.rectpacking' buttonStyle={buttonStyle} >ELK Rectangle Packing</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.sporeCompaction' buttonStyle={buttonStyle} >ELK Spore Compaction</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.sporeOverlap' buttonStyle={buttonStyle} >ELK Spore Overlap Removal</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.stress' buttonStyle={buttonStyle} >ELK Stress</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.topdownpacking' buttonStyle={buttonStyle} >ELK Top-down Packing</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.graphviz.circo' buttonStyle={buttonStyle} >Graphviz Circo</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.graphviz.dot' buttonStyle={buttonStyle} >Graphviz Dot</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.graphviz.fdp' buttonStyle={buttonStyle} >Graphviz Fdp</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.graphviz.neato' buttonStyle={buttonStyle} >Graphviz Neato</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.graphviz.twopi' buttonStyle={buttonStyle} >Graphviz Twopi</AlgoButton>
-            <AlgoButton onClick={AlgoChange} algorithm='org.eclipse.elk.alg.libavoid' buttonStyle={buttonStyle} >Libavoid</AlgoButton> */}
-
-          </Panel>
-          <MiniMap />
-          <Controls />
-          <Background />
-        </ReactFlow>
+          buttonStyle={buttonStyle}
+          directionChange={directionChange}
+          saveNodes={saveNodes}
+          requestDeleteSelection={requestDeleteSelection}
+          selectedNodes={selectedNodes}
+          selectedNodesCount={selectedNodes.length}
+          selectedEdgesCount={selectedEdges.length}
+          addNewNode={addNewNode}
+          isAddModalOpen={isAddModalOpen}
+          setIsAddModalOpen={setIsAddModalOpen}
+          handleAddSubmit={handleAddSubmit}
+          showNodes={showNodes}
+          setShowNodes={setShowNodes}
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          handleSubmit={handleSubmit}
+          saveStatus={saveStatus}
+        />
       </div>
     </>
   );

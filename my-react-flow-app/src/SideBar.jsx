@@ -5,12 +5,16 @@ import { useEffect, useState } from "react";
 const Sidebar = ({ onItemClick, handleDelete }) => {
   const apps = [];
   const [previousItems, setPreviousItems] = useState([]);
+  const [selectedItemId, setSelectedItemId] = useState(null);
 
   useEffect(() => {
     fetch("http://localhost:3000/list/maps")
       .then((response) => response.json())
       .then((data) => {
-        const items = data.maps.map((item) => item.name);
+        const items = data.maps.map((item, idx) => ({
+          id: item.id ?? `${item.name}-${idx}`,
+          name: item.name,
+        }));
         return (items)
       }
       )
@@ -25,8 +29,15 @@ const Sidebar = ({ onItemClick, handleDelete }) => {
       backgroundColor: 'black',
       color: 'white',
       padding: '16px',
-      overflowY: 'auto',
+      overflow: 'hidden',
       fontFamily: 'sans-serif',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    content: {
+      overflowY: 'auto',
+      flex: 1,
+      paddingRight: '4px',
     },
     sectionTitle: {
       fontSize: '10px',
@@ -37,9 +48,20 @@ const Sidebar = ({ onItemClick, handleDelete }) => {
     item: {
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'space-between',
       padding: '8px',
       borderRadius: '6px',
       cursor: 'pointer',
+    },
+    itemTextWrap: {
+      display: 'flex',
+      alignItems: 'center',
+      minWidth: 0,
+    },
+    activeItem: {
+      backgroundColor: '#1f2937',
+      border: '1px solid #3b82f6',
+      boxShadow: 'inset 0 0 0 1px rgba(59, 130, 246, 0.2)',
     },
     icon: {
       width: '24px',
@@ -98,48 +120,65 @@ const Sidebar = ({ onItemClick, handleDelete }) => {
         <div style={styles.topIcon} />
       </div>
 
-      {/* Apps Section */}
-      {apps.map((app, idx) => (
-        <div key={idx} style={styles.item}>
-          <div style={styles.icon}></div>
-          <span style={styles.text}>{app}</span>
+      <div style={styles.content}>
+        {/* Apps Section */}
+        {apps.map((app, idx) => (
+          <div key={idx} style={styles.item}>
+            <div style={styles.itemTextWrap}>
+              <div style={styles.icon}></div>
+              <span style={styles.text}>{app}</span>
+            </div>
+          </div>
+        ))}
+
+        {/* Projects */}
+        <div style={styles.sectionTitle}>Projects</div>
+        <div style={styles.item}>
+          <div style={styles.itemTextWrap}>
+            <div style={styles.smallIcon}></div>
+            <span style={styles.text}>ew</span>
+          </div>
         </div>
-      ))}
 
-      {/* Projects */}
-      <div style={styles.sectionTitle}>Projects</div>
-      <div style={styles.item}>
-        <div style={styles.smallIcon}></div>
-        <span style={styles.text}>ew</span>
-      </div>
+        {/* Today */}
+        <div style={styles.sectionTitle}>Today</div>
+        <div style={styles.todayItem}>OBPP Platform Structures</div>
 
-      {/* Today */}
-      <div style={styles.sectionTitle}>Today</div>
-      <div style={styles.todayItem}>OBPP Platform Structures</div>
-
-      {/* Previous 7 Days */}
-      <div style={styles.sectionTitle}>Previous 7 Days</div>
-      {previousItems.map((item, idx) => (
-        <div key={idx} style={styles.item}>
-          <span style={styles.text} onClick={() => onItemClick(item)}>
-            {item}
-          </span>
-          <button
+        {/* Previous 7 Days */}
+        <div style={styles.sectionTitle}>Previous 7 Days</div>
+        {previousItems.map((item, idx) => (
+          <div
+            key={item.id}
             style={{
-              marginLeft: "8px",
-              backgroundColor: "red",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              padding: "4px 8px",
+              ...styles.item,
+              ...(selectedItemId === item.id ? styles.activeItem : {}),
             }}
-            onClick={() => handleDelete(item)}
+            onClick={() => {
+              setSelectedItemId(item.id);
+              onItemClick(item.name);
+            }}
           >
-            Delete
-          </button>
-        </div>
-      ))}
+            <span style={styles.text}>{item.name}</span>
+            <button
+              style={{
+                marginLeft: "8px",
+                backgroundColor: "red",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                padding: "4px 8px",
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleDelete(item.name);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
