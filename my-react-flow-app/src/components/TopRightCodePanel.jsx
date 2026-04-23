@@ -22,7 +22,7 @@ const editorStyle = {
   color: '#e5e7eb',
   border: 'none',
   borderRadius: 0,
-  padding: '10px',
+  padding: '5px',
   fontFamily: 'Consolas, Monaco, "Courier New", monospace',
   fontSize: '12px',
   lineHeight: 1.4,
@@ -38,8 +38,7 @@ const editorWrapperStyle = {
 };
 
 const lineNumberGutterStyle = {
-  minWidth: '44px',
-  padding: '10px 8px',
+  padding: '5px 4px',
   background: '#0f172a',
   color: '#9ca3af',
   borderRight: '1px solid #374151',
