@@ -42,33 +42,12 @@ function FlowControlPanel({
       <AlgoButton onClick={directionChange} algorithm="LEFT" buttonStyle={buttonStyle}>LEFT</AlgoButton>
       <AlgoButton onClick={directionChange} algorithm="CENTER" buttonStyle={buttonStyle}>CENTER</AlgoButton>
 
-      <button type="button" onClick={() => saveNodes(nodes, edges)} style={buttonStyle}>Save Positions</button>
-      <button
-        type="button"
-        onClick={requestDeleteSelection}
-        disabled={noSelection}
-        style={{
-          ...buttonStyle,
-          opacity: noSelection ? 0.5 : 1,
-          cursor: noSelection ? 'not-allowed' : 'pointer',
-        }}
-      >
-        Delete selected ({selectedNodesCount + selectedEdgesCount})
-      </button>
-      <button type="button" onClick={addNewNode} style={buttonStyle}>Add node</button>
-      <button type="button" onClick={() => setIsAddModalOpen(!isAddModalOpen)} style={buttonStyle}>Add New Nodes</button>
-      <button
-        type="button"
-        onClick={() => setShowNodes((on) => !on)}
-        style={{
-          ...buttonStyle,
-          backgroundColor: showNodes ? '#000000' : '#666',
-          opacity: showNodes ? 1 : 0.8,
-        }}
-      >
-        Graph {showNodes ? 'ON' : 'OFF'}
-      </button>
-      <button type="button" onClick={() => setIsModalOpen(!isModalOpen)} style={buttonStyle}>Add New Graph</button>
+      <AlgoButton type="button" onClick={() => saveNodes(nodes, edges)} buttonStyle={buttonStyle}>Save Positions</AlgoButton>
+      <AlgoButton onClick={requestDeleteSelection} disabled={noSelection} buttonStyle={buttonStyle}>Delete selected ({selectedNodesCount + selectedEdgesCount})</AlgoButton>
+      <AlgoButton onClick={addNewNode} buttonStyle={buttonStyle}>Add node</AlgoButton>
+      <AlgoButton onClick={() => setIsAddModalOpen(!isAddModalOpen)} buttonStyle={buttonStyle}>Add New Nodes</AlgoButton>
+      <AlgoButton onClick={() => setShowNodes((on) => !on)} buttonStyle={buttonStyle}>Graph {showNodes ? 'ON' : 'OFF'}</AlgoButton>
+      <AlgoButton onClick={() => setIsModalOpen(!isModalOpen)} buttonStyle={buttonStyle}>Add New Graph</AlgoButton>
 
       <FileUploadModal
         isOpen={isAddModalOpen}
