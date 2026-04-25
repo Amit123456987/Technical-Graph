@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { console } = require('inspector');
 const { processFile } = require('./process.js');
+const { parseMermaidTextToReactFlow } = require('./mermaidCreateParser.js');
 
 // Import models and router
 const { operations: nodesOps, connectDB: connectNodesDB } = require('./models/Nodes');
@@ -82,6 +83,72 @@ app.post('/create', async (req, res) => {
             mapping: mappingResult
         }
     });
+});
+
+// Same as /create but input must be valid Mermaid flowchart text; parsed via mermaid-ast (no processFile).
+app.post('/create/parser', async (req, res) => {
+    const { name, text } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!text || String(text).trim() === '') {
+        return res.status(400).json({ error: 'Either file or text must be provided and non-empty' });
+    }
+
+    const docWithGivenName = await lastMapOps.get_last_mapByName(name);
+    if (docWithGivenName) {
+        return res.status(400).json({ error: 'This workspace already exists' });
+    }
+
+    let nodeAndEdge;
+    try {
+        nodeAndEdge = await parseMermaidTextToReactFlow(text);
+    } catch (err) {
+        console.error('Mermaid parse error (create/parser):', err);
+        return res.status(400).json({
+            error: 'Could not parse Mermaid flowchart',
+            message: err.message || String(err)
+        });
+    }
+
+    if (nodeAndEdge.nodes.length === 0 && nodeAndEdge.edges.length === 0) {
+        return res.status(400).json({ error: 'No nodes or edges found in diagram' });
+    }
+
+    try {
+        const nodesResult = await nodesOps.createnodes({
+            name: name,
+            nodes: nodeAndEdge.nodes
+        });
+
+        const edgesResult = await edgesOps.createedges({
+            name: name,
+            edges: nodeAndEdge.edges
+        });
+
+        const mappingResult = await lastMapOps.create_last_map({
+            name: name,
+            node_id: nodesResult.id,
+            edge_id: edgesResult.id
+        });
+
+        res.status(200).json({
+            message: 'Nodes and edges updated successfully',
+            data: {
+                name: name,
+                nodes: nodesResult.nodes,
+                edges: edgesResult.edges,
+                mapping: mappingResult
+            }
+        });
+    } catch (error) {
+        console.error('Error in /create/parser:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
 });
 
 app.post('/', async (req, res) => {

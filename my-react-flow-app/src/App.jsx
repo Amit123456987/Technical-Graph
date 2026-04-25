@@ -155,7 +155,7 @@ const Flow = () => {
     try {
 
       // Replace with your actual API endpoint
-      const response = await fetch('http://localhost:3000/create', {
+      const response = await fetch('http://localhost:3000/create/parser', {
         method: 'POST',
         headers: {
           "Content-Type": "application/json" // Important! Tells server you're sending JSON
