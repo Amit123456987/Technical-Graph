@@ -23,6 +23,8 @@ function TextUpdaterNode({ id, data, isConnectable }) {
           background: '#1a1a2e',
           color: '#eee',
           fontSize: '12px',
+          whiteSpace: 'pre-line',
+          wordBreak: 'break-word',
         }}
       >        
         {label || 'Untitled node'}

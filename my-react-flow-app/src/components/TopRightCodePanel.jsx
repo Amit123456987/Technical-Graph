@@ -61,14 +61,32 @@ const saveButtonStyle = {
   alignSelf: 'flex-start',
 };
 
+const labelTextareaStyle = {
+  width: '100%',
+  minHeight: '70px',
+  resize: 'vertical',
+  background: '#0f172a',
+  color: '#f9fafb',
+  border: '1px solid #334155',
+  borderRadius: '8px',
+  padding: '10px 12px',
+  fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
+  fontSize: '13px',
+  lineHeight: 1.5,
+  outline: 'none',
+  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+};
+
 const TopRightCodePanel = React.memo(({ selectedNodes, setNodes, nodes, edges, saveNodes }) => {
   const selectedNode = selectedNodes[0];
   const [code, setCode] = useState('');
+  const [label, setLabel] = useState('');
   const lineCount = Math.max(1, code.split('\n').length);
 
   useEffect(() => {
     setCode(selectedNode?.data?.code ?? '');
-  }, [selectedNode?.id, selectedNode?.data?.code]);
+    setLabel(selectedNode?.data?.label ?? '');
+  }, [selectedNode?.id, selectedNode?.data?.code, selectedNode?.data?.label]);
 
   const handleSave = useCallback(() => {
     if (!selectedNode?.id) return;
@@ -80,6 +98,7 @@ const TopRightCodePanel = React.memo(({ selectedNodes, setNodes, nodes, edges, s
               data: {
                 ...node.data,
                 code,
+                label,
               },
             }
           : node
@@ -102,6 +121,22 @@ const TopRightCodePanel = React.memo(({ selectedNodes, setNodes, nodes, edges, s
       >
         Save
       </button>
+      <div>
+        <textarea
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          spellCheck={false}
+          style={{
+            ...labelTextareaStyle,
+            borderColor: selectedNode ? '#3b82f6' : '#334155',
+            boxShadow: selectedNode ? '0 0 0 1px rgba(59,130,246,0.35)' : 'none',
+            opacity: selectedNode ? 1 : 0.6,
+            cursor: selectedNode ? 'text' : 'not-allowed',
+          }}
+          placeholder="Select a node to edit label..."
+          disabled={!selectedNode}
+        />
+      </div>
       <div style={editorWrapperStyle}>
         <div style={lineNumberGutterStyle} aria-hidden="true">
           {Array.from({ length: lineCount }, (_, idx) => (
