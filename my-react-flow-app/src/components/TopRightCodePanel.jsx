@@ -84,8 +84,8 @@ const TopRightCodePanel = React.memo(({ selectedNodes, setNodes, nodes, edges, s
   const lineCount = Math.max(1, code.split('\n').length);
 
   useEffect(() => {
-    setCode(selectedNode?.data?.code ?? '');
-    setLabel(selectedNode?.data?.label ?? '');
+    setCode((prev) => selectedNode?.data?.code ?? prev);
+    setLabel((prev) => selectedNode?.data?.label ?? prev);
   }, [selectedNode?.id, selectedNode?.data?.code, selectedNode?.data?.label]);
 
   const handleSave = useCallback(() => {
