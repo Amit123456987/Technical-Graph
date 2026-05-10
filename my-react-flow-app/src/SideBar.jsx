@@ -59,9 +59,9 @@ const Sidebar = ({ onItemClick, handleDelete }) => {
       minWidth: 0,
     },
     activeItem: {
-      backgroundColor: '#1f2937',
-      border: '1px solid #3b82f6',
-      boxShadow: 'inset 0 0 0 1px rgba(59, 130, 246, 0.2)',
+      backgroundColor: '#141414',
+      border: '1px solid #3a3a3a',
+      boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.15)',
     },
     icon: {
       width: '24px',

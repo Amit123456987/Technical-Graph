@@ -20,7 +20,7 @@ function TextUpdaterNode({ id, data, isConnectable }) {
           minWidth: '120px',
           minHeight: '40px',
           width: 'fit-content',
-          background: '#1a1a2e',
+          background: '#ffffff',
           color: '#eee',
           fontSize: '12px',
           whiteSpace: 'pre-line',
